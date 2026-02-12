@@ -7,31 +7,19 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="topBar">
-    <div class="brandTile">
+  <div id="hud">
+    <div class="brand">
       <h1>Transit Tangle</h1>
-      <p>Endless Network</p>
+      <p>Endless Traffic Sandbox</p>
     </div>
-    <div class="dayTile">
-      <span id="weekLabel">W1</span>
-      <span id="dayLabel">Day 1</span>
-    </div>
-  </div>
-
-  <div id="sideTools" aria-hidden="true">
-    <div class="toolBtn">🚧</div>
-    <div class="toolBtn">🛣️</div>
-    <div class="toolBtn">🌉</div>
-    <div class="toolBtn">🚦</div>
-  </div>
-
-  <div id="bottomHud">
     <div id="stats">
+      <span id="dayLabel">Day 1</span>
+      <span id="weekLabel">Week 1</span>
       <span id="roadsLabel">Roads: 0 / 45</span>
       <span id="scoreLabel">Trips: 0</span>
       <span id="statusLabel">Status: Flowing</span>
     </div>
-    <div id="controlsHelp">Drag on grid to build roads (1 crossed cell = 1 road). Right-click/Shift+click to remove.</div>
+    <div id="controlsHelp">Drag on map to draw roads. Click near a road to remove and reroute freely.</div>
   </div>
 
   <div id="upgradePanel" class="hidden">
