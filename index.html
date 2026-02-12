@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pastel Traffic Planner</title>
+  <style>
+    :root {
+      --bg: #d8ecf5;
+      --panel: #f7fbff;
+      --ink: #2b3d4f;
+      --accent: #5f8fb3;
+      --danger: #cf5e76;
+      --ok: #4f9e7a;
+      --road: #eef2f5;
+      --road-edge: #b9c6d3;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at 10% 10%, #e8f6fb, var(--bg));
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(3px);
+      border-bottom: 1px solid #bdd3e5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: 0.3px;
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chip {
+      background: var(--panel);
+      border: 1px solid #c6d7e6;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .chip.bad { color: var(--danger); border-color: #e2afb9; }
+
+    button {
+      border: 1px solid #b6cadc;
+      background: #f2f8fd;
+      color: #2d455a;
+      border-radius: 10px;
+      padding: 7px 11px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #e7f2fb; }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 12px;
+      padding: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #gameWrap {
+      background: #b9d9e8;
+      border: 1px solid #a2c3d6;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      min-height: 520px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    #side {
+      background: rgba(255,255,255,0.75);
+      border: 1px solid #c0d6e7;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto;
+    }
+
+    .card {
+      background: #f8fcff;
+      border: 1px solid #c9dceb;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 0.92rem;
+      line-height: 1.38;
+    }
+
+    .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #5f6f7c66; }
+
+    .warn {
+      color: #7b3b4f;
+      background: #fcecf1;
+      border: 1px solid #e5bbc8;
+      border-radius: 10px;
+      padding: 8px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      #gameWrap { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pastel Traffic Planner (Endless)</h1>
+    <div class="hud">
+      <div class="chip" id="scoreChip">Score: 0</div>
+      <div class="chip" id="dayChip">Day: 1</div>
+      <div class="chip" id="roadChip">Road Segments: 80</div>
+      <div class="chip" id="carsChip">Cars in City: 0</div>
+      <div class="chip" id="loadChip">Congestion: 0%</div>
+      <button id="pauseBtn">Pause</button>
+      <button id="saveBtn">Save</button>
+      <button id="resetBtn">New City</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="gameWrap">
+      <canvas id="game"></canvas>
+    </div>
+    <aside id="side">
+      <div class="card">
+        <strong>How to play</strong><br>
+        Drag on the map to draw two-way roads. New roads can be placed anytime (no penalty), but road segments are limited. Cars leave each house, drive to their same-color store, then return home.
+      </div>
+      <div class="card">
+        <strong>Weekly upgrades (every 7 days)</strong><br>
+        +20 road segments, +1 traffic light, +1 roundabout, +1 bridge tile unlock.
+      </div>
+      <div class="card" id="upgradeCard"></div>
+      <div class="card">
+        <strong>Legend</strong>
+        <div class="legend-item"><span class="swatch" style="background:#f094ae"></span> Pink houses/stores</div>
+        <div class="legend-item"><span class="swatch" style="background:#75b9ff"></span> Blue houses/stores</div>
+        <div class="legend-item"><span class="swatch" style="background:#ffd570"></span> Yellow houses/stores</div>
+        <div class="legend-item"><span class="swatch" style="background:#94d99c"></span> Green houses/stores</div>
+      </div>
+      <div class="warn" id="statusMsg">Draw roads to connect houses and stores.</div>
+    </aside>
+  </main>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "pastel_traffic_planner_save_v1";
+      const COLORS = [
+        { key: "pink", house: "#f094ae", store: "#dc5f87", car: "#c8426e" },
+        { key: "blue", house: "#75b9ff", store: "#4f8fdb", car: "#326fba" },
+        { key: "yellow", house: "#ffd570", store: "#f1b838", car: "#c98d1f" },
+        { key: "green", house: "#94d99c", store: "#59b267", car: "#3c8f49" }
+      ];
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const gameWrap = document.getElementById("gameWrap");
+
+      const scoreChip = document.getElementById("scoreChip");
+      const dayChip = document.getElementById("dayChip");
+      const roadChip = document.getElementById("roadChip");
+      const carsChip = document.getElementById("carsChip");
+      const loadChip = document.getElementById("loadChip");
+      const statusMsg = document.getElementById("statusMsg");
+      const upgradeCard = document.getElementById("upgradeCard");
+
+      const pauseBtn = document.getElementById("pauseBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const resetBtn = document.getElementById("resetBtn");
+
+      const state = {
+        time: 0,
+        day: 1,
+        score: 0,
+        paused: false,
+        gameOver: false,
+        w: 0,
+        h: 0,
+        houses: [],
+        stores: [],
+        rivers: [],
+        roads: [],
+        roadSet: new Set(),
+        intersections: new Map(),
+        cars: [],
+        nextCarId: 1,
+        trafficLights: 1,
+        roundabouts: 0,
+        bridges: 1,
+        availableRoad: 80,
+        maxAvailableRoad: 80,
+        spawnAccumulator: 0,
+        baseSpawnPerSec: 0.9,
+        dayLengthSec: 35,
+        dragStart: null,
+        dragCurrent: null,
+        audioCtx: null,
+      };
+
+      function resize() {
+        const r = gameWrap.getBoundingClientRect();
+        canvas.width = Math.max(720, Math.floor(r.width));
+        canvas.height = Math.max(420, Math.floor(r.height));
+        state.w = canvas.width;
+        state.h = canvas.height;
+      }
+
+      function ptKey(x, y) {
+        return `${Math.round(x)},${Math.round(y)}`;
+      }
+
+      function roadKey(a, b) {
+        const ak = ptKey(a.x, a.y);
+        const bk = ptKey(b.x, b.y);
+        return ak < bk ? `${ak}|${bk}` : `${bk}|${ak}`;
+      }
+
+      function dist(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        return Math.hypot(dx, dy);
+      }
+
+      function randomRange(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function pick(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      function shallowRiver() {
+        const y = randomRange(state.h * 0.28, state.h * 0.72);
+        const amplitude = randomRange(24, 52);
+        const frequency = randomRange(0.004, 0.009);
+        const points = [];
+        for (let x = -20; x <= state.w + 20; x += 16) {
+          points.push({ x, y: y + Math.sin(x * frequency) * amplitude });
+        }
+        return points;
+      }
+
+      function pointNearRiver(p) {
+        for (const river of state.rivers) {
+          for (let i = 0; i < river.length - 1; i++) {
+            const a = river[i];
+            const b = river[i + 1];
+            const t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) /
+              (((b.x - a.x) ** 2) + ((b.y - a.y) ** 2) + 1e-6);
+            const clamped = Math.max(0, Math.min(1, t));
+            const cx = a.x + (b.x - a.x) * clamped;
+            const cy = a.y + (b.y - a.y) * clamped;
+            if (Math.hypot(p.x - cx, p.y - cy) < 18) return true;
+          }
+        }
+        return false;
+      }
+
+      function riverCrossesRoad(a, b) {
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        return pointNearRiver(mid);
+      }
+
+      function buildCity() {
+        state.houses = [];
+        state.stores = [];
+        state.roads = [];
+        state.roadSet.clear();
+        state.intersections.clear();
+        state.cars = [];
+        state.nextCarId = 1;
+        state.time = 0;
+        state.day = 1;
+        state.score = 0;
+        state.gameOver = false;
+        state.spawnAccumulator = 0;
+        state.baseSpawnPerSec = 0.9;
+        state.availableRoad = 80;
+        state.maxAvailableRoad = 80;
+        state.trafficLights = 1;
+        state.roundabouts = 0;
+        state.bridges = 1;
+
+        state.rivers = [shallowRiver()];
+
+        for (let i = 0; i < COLORS.length; i++) {
+          const color = COLORS[i];
+          const sideLeft = i % 2 === 0;
+          const house = {
+            id: `H-${color.key}`,
+            color: color.key,
+            x: sideLeft ? randomRange(80, state.w * 0.34) : randomRange(state.w * 0.62, state.w - 80),
+            y: randomRange(80, state.h - 80)
+          };
+          const store = {
+            id: `S-${color.key}`,
+            color: color.key,
+            x: sideLeft ? randomRange(state.w * 0.55, state.w - 90) : randomRange(90, state.w * 0.45),
+            y: randomRange(90, state.h - 90)
+          };
+          state.houses.push(house);
+          state.stores.push(store);
+        }
+        updateHUD();
+        updateUpgradeCard();
+        setStatus("City generated. Draw roads to connect matching colors.");
+      }
+
+      function drawRoundedRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function drawRiver() {
+        for (const river of state.rivers) {
+          ctx.beginPath();
+          ctx.moveTo(river[0].x, river[0].y);
+          for (let i = 1; i < river.length; i++) ctx.lineTo(river[i].x, river[i].y);
+          ctx.lineWidth = 35;
+          ctx.strokeStyle = "#7fc6e8";
+          ctx.stroke();
+          ctx.lineWidth = 24;
+          ctx.strokeStyle = "#9dd9f5";
+          ctx.stroke();
+        }
+      }
+
+      function drawRoads() {
+        for (const road of state.roads) {
+          ctx.beginPath();
+          ctx.moveTo(road.a.x, road.a.y);
+          ctx.lineTo(road.b.x, road.b.y);
+          ctx.lineWidth = road.isBridge ? 14 : 12;
+          ctx.strokeStyle = road.isBridge ? "#fff3d6" : "var(--road)";
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(road.a.x, road.a.y);
+          ctx.lineTo(road.b.x, road.b.y);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = road.isBridge ? "#d0b47e" : "#b5c4d2";
+          ctx.stroke();
+        }
+
+        for (const [key, v] of state.intersections.entries()) {
+          if (v.degree < 3) continue;
+          const [x, y] = key.split(",").map(Number);
+          ctx.beginPath();
+          ctx.arc(x, y, 7 + Math.min(4, v.degree - 3), 0, Math.PI * 2);
+          ctx.fillStyle = v.light ? "#ffe7a0" : "#f0f4f8";
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "#8da2b5";
+          ctx.stroke();
+        }
+      }
+
+      function drawNode(node, type) {
+        const color = COLORS.find(c => c.key === node.color);
+        const size = type === "house" ? 18 : 16;
+
+        ctx.fillStyle = type === "house" ? color.house : color.store;
+        drawRoundedRect(node.x - size, node.y - size, size * 2, size * 2, 7);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffffd9";
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(type === "house" ? "H" : "S", node.x, node.y + 4);
+      }
+
+      function drawCars() {
+        for (const car of state.cars) {
+          const clr = COLORS.find(c => c.key === car.color).car;
+          ctx.beginPath();
+          ctx.arc(car.pos.x, car.pos.y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = clr;
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "#ffffffbb";
+          ctx.stroke();
+        }
+      }
+
+      function drawDragPreview() {
+        if (!state.dragStart || !state.dragCurrent) return;
+        ctx.beginPath();
+        ctx.moveTo(state.dragStart.x, state.dragStart.y);
+        ctx.lineTo(state.dragCurrent.x, state.dragCurrent.y);
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = "#507a9fb3";
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, state.w, state.h);
+        drawRiver();
+        drawRoads();
+        for (const h of state.houses) drawNode(h, "house");
+        for (const s of state.stores) drawNode(s, "store");
+        drawCars();
+        drawDragPreview();
+      }
+
+      function setStatus(msg) {
+        statusMsg.textContent = msg;
+      }
+
+      function updateUpgradeCard() {
+        upgradeCard.innerHTML = `<strong>Inventory</strong><br>
+          Traffic lights: <b>${state.trafficLights}</b><br>
+          Roundabouts: <b>${state.roundabouts}</b><br>
+          Bridge capacity: <b>${state.bridges}</b><br>
+          Spawn rate: <b>${state.baseSpawnPerSec.toFixed(2)}/sec</b>`;
+      }
+
+      function updateHUD() {
+        scoreChip.textContent = `Score: ${Math.floor(state.score)}`;
+        dayChip.textContent = `Day: ${state.day}`;
+        roadChip.textContent = `Road Segments: ${state.availableRoad}`;
+        carsChip.textContent = `Cars in City: ${state.cars.length}`;
+
+        let congested = 0;
+        for (const intersection of state.intersections.values()) {
+          if (intersection.degree >= 3) congested += Math.max(0, intersection.queue - 2);
+        }
+        const load = Math.min(100, Math.floor((congested / 22) * 100 + state.cars.length * 0.8));
+        loadChip.textContent = `Congestion: ${load}%`;
+        loadChip.classList.toggle("bad", load > 70);
+
+        if (load > 92 || state.cars.length > 160) {
+          state.gameOver = true;
+          setStatus("City gridlock! Start a new city or build better roads earlier.");
+        }
+        updateUpgradeCard();
+      }
+
+      function nearestSnap(x, y) {
+        const p = { x: Math.round(x / 20) * 20, y: Math.round(y / 20) * 20 };
+        const nodes = [...state.houses, ...state.stores];
+        for (const n of nodes) {
+          if (Math.hypot(p.x - n.x, p.y - n.y) < 28) return { x: n.x, y: n.y };
+        }
+        for (const k of state.intersections.keys()) {
+          const [ix, iy] = k.split(",").map(Number);
+          if (Math.hypot(p.x - ix, p.y - iy) < 20) return { x: ix, y: iy };
+        }
+        return p;
+      }
+
+      function incIntersection(p) {
+        const key = ptKey(p.x, p.y);
+        if (!state.intersections.has(key)) {
+          state.intersections.set(key, { degree: 0, queue: 0, light: false });
+        }
+        const obj = state.intersections.get(key);
+        obj.degree += 1;
+        if (!obj.light && obj.degree >= 4 && state.trafficLights > 0) {
+          obj.light = true;
+          state.trafficLights -= 1;
+        }
+      }
+
+      function addRoad(a, b) {
+        if (a.x === b.x && a.y === b.y) return false;
+        const len = dist(a, b);
+        const needed = Math.max(1, Math.ceil(len / 45));
+        if (state.availableRoad < needed) {
+          setStatus("Not enough road segments left.");
+          return false;
+        }
+
+        const key = roadKey(a, b);
+        if (state.roadSet.has(key)) return false;
+
+        const isBridge = riverCrossesRoad(a, b);
+        if (isBridge && state.bridges <= 0) {
+          setStatus("Road crosses river: unlock bridge capacity in upgrades.");
+          return false;
+        }
+
+        state.roads.push({ a, b, len, isBridge });
+        state.roadSet.add(key);
+        state.availableRoad -= needed;
+        if (isBridge) state.bridges -= 1;
+        incIntersection(a);
+        incIntersection(b);
+        return true;
+      }
+
+      function neighborsGraph() {
+        const g = new Map();
+        function add(n1, n2, len) {
+          const k = ptKey(n1.x, n1.y);
+          if (!g.has(k)) g.set(k, []);
+          g.get(k).push({ p: n2, len });
+        }
+        for (const r of state.roads) {
+          add(r.a, r.b, r.len);
+          add(r.b, r.a, r.len);
+        }
+        return g;
+      }
+
+      function shortestPath(from, to, graph) {
+        const startK = ptKey(from.x, from.y);
+        const endK = ptKey(to.x, to.y);
+        if (startK === endK) return [from];
+
+        const distMap = new Map([[startK, 0]]);
+        const prev = new Map();
+        const q = [{ k: startK, p: from, d: 0 }];
+
+        while (q.length) {
+          q.sort((a, b) => a.d - b.d);
+          const cur = q.shift();
+          if (cur.k === endK) break;
+          const nxt = graph.get(cur.k) || [];
+
+          for (const edge of nxt) {
+            const nk = ptKey(edge.p.x, edge.p.y);
+            const nd = cur.d + edge.len;
+            if (!distMap.has(nk) || nd < distMap.get(nk)) {
+              distMap.set(nk, nd);
+              prev.set(nk, cur.k);
+              q.push({ k: nk, p: edge.p, d: nd });
+            }
+          }
+        }
+
+        if (!prev.has(endK)) return null;
+        const route = [];
+        let k = endK;
+        while (k) {
+          const [x, y] = k.split(",").map(Number);
+          route.push({ x, y });
+          k = prev.get(k);
+          if (k === startK) {
+            const [sx, sy] = startK.split(",").map(Number);
+            route.push({ x: sx, y: sy });
+            break;
+          }
+        }
+        route.reverse();
+        return route;
+      }
+
+      function spawnCar() {
+        const colorData = pick(COLORS);
+        const home = state.houses.find(h => h.color === colorData.key);
+        const store = state.stores.find(s => s.color === colorData.key);
+
+        const graph = neighborsGraph();
+        const toStore = shortestPath(home, store, graph);
+        if (!toStore) return;
+
+        const toHome = shortestPath(store, home, graph);
+        if (!toHome) return;
+
+        const route = [...toStore, ...toHome.slice(1)];
+
+        state.cars.push({
+          id: state.nextCarId++,
+          color: colorData.key,
+          route,
+          routeIndex: 0,
+          pos: { x: route[0].x, y: route[0].y },
+          speed: randomRange(35, 52),
+          done: false
+        });
+      }
+
+      function playBeep(freq, length = 0.05, type = "sine", volume = 0.02) {
+        if (!state.audioCtx) return;
+        const t = state.audioCtx.currentTime;
+        const osc = state.audioCtx.createOscillator();
+        const gain = state.audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.connect(gain).connect(state.audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + length);
+      }
+
+      function updateCars(dt) {
+        for (const i of state.intersections.values()) i.queue = 0;
+
+        for (const car of state.cars) {
+          if (car.done) continue;
+          const cur = car.route[car.routeIndex];
+          const nxt = car.route[car.routeIndex + 1];
+          if (!nxt) {
+            car.done = true;
+            state.score += 25;
+            playBeep(520, 0.04, "triangle", 0.03);
+            continue;
+          }
+
+          const key = ptKey(nxt.x, nxt.y);
+          if (state.intersections.has(key)) {
+            const inter = state.intersections.get(key);
+            inter.queue += 1;
+          }
+
+          const dx = nxt.x - car.pos.x;
+          const dy = nxt.y - car.pos.y;
+          const d = Math.hypot(dx, dy);
+
+          let slowdown = 1;
+          if (state.intersections.has(key)) {
+            const inter = state.intersections.get(key);
+            slowdown = inter.light ? 0.65 : 0.82;
+            if (inter.queue > 5) slowdown -= Math.min(0.4, (inter.queue - 4) * 0.04);
+            slowdown = Math.max(0.25, slowdown);
+          }
+
+          const step = car.speed * slowdown * dt;
+          if (d <= step) {
+            car.pos.x = nxt.x;
+            car.pos.y = nxt.y;
+            car.routeIndex += 1;
+          } else {
+            car.pos.x += (dx / d) * step;
+            car.pos.y += (dy / d) * step;
+          }
+        }
+        state.cars = state.cars.filter(c => !c.done);
+      }
+
+      function weekUpgrade() {
+        state.availableRoad += 20;
+        state.maxAvailableRoad += 20;
+        state.trafficLights += 1;
+        state.roundabouts += 1;
+        state.bridges += 1;
+        state.baseSpawnPerSec += 0.1;
+        setStatus("Weekly planning reward: +roads, +light, +roundabout, +bridge.");
+        playBeep(640, 0.08, "square", 0.03);
+      }
+
+      function tick(dt) {
+        if (state.paused || state.gameOver) return;
+        state.time += dt;
+
+        const newDay = Math.floor(state.time / state.dayLengthSec) + 1;
+        if (newDay > state.day) {
+          state.day = newDay;
+          state.baseSpawnPerSec += 0.03;
+          if (state.day % 7 === 0) weekUpgrade();
+        }
+
+        state.spawnAccumulator += dt * state.baseSpawnPerSec;
+        while (state.spawnAccumulator >= 1) {
+          spawnCar();
+          state.spawnAccumulator -= 1;
+        }
+
+        updateCars(dt);
+        updateHUD();
+      }
+
+      function pointerPos(ev) {
+        const r = canvas.getBoundingClientRect();
+        return { x: ev.clientX - r.left, y: ev.clientY - r.top };
+      }
+
+      canvas.addEventListener("pointerdown", (ev) => {
+        if (state.gameOver) return;
+        if (!state.audioCtx) {
+          state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const p = pointerPos(ev);
+        state.dragStart = nearestSnap(p.x, p.y);
+        state.dragCurrent = state.dragStart;
+      });
+
+      canvas.addEventListener("pointermove", (ev) => {
+        if (!state.dragStart) return;
+        const p = pointerPos(ev);
+        state.dragCurrent = nearestSnap(p.x, p.y);
+      });
+
+      window.addEventListener("pointerup", (ev) => {
+        if (!state.dragStart) return;
+        const p = pointerPos(ev);
+        const end = nearestSnap(p.x, p.y);
+
+        if (addRoad(state.dragStart, end)) {
+          setStatus("Road added.");
+          playBeep(420, 0.03, "sine", 0.03);
+        }
+        state.dragStart = null;
+        state.dragCurrent = null;
+        updateHUD();
+      });
+
+      pauseBtn.addEventListener("click", () => {
+        state.paused = !state.paused;
+        pauseBtn.textContent = state.paused ? "Resume" : "Pause";
+      });
+
+      saveBtn.addEventListener("click", () => {
+        const data = {
+          day: state.day,
+          score: state.score,
+          houses: state.houses,
+          stores: state.stores,
+          rivers: state.rivers,
+          roads: state.roads,
+          trafficLights: state.trafficLights,
+          roundabouts: state.roundabouts,
+          bridges: state.bridges,
+          availableRoad: state.availableRoad,
+          maxAvailableRoad: state.maxAvailableRoad,
+          baseSpawnPerSec: state.baseSpawnPerSec
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        setStatus("City saved locally.");
+      });
+
+      resetBtn.addEventListener("click", () => {
+        buildCity();
+      });
+
+      function loadSave() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        try {
+          const d = JSON.parse(raw);
+          state.day = d.day || 1;
+          state.score = d.score || 0;
+          state.houses = d.houses || [];
+          state.stores = d.stores || [];
+          state.rivers = d.rivers || [shallowRiver()];
+          state.roads = d.roads || [];
+          state.trafficLights = d.trafficLights ?? 1;
+          state.roundabouts = d.roundabouts ?? 0;
+          state.bridges = d.bridges ?? 1;
+          state.availableRoad = d.availableRoad ?? 80;
+          state.maxAvailableRoad = d.maxAvailableRoad ?? 80;
+          state.baseSpawnPerSec = d.baseSpawnPerSec ?? 0.9;
+          state.roadSet.clear();
+          state.intersections.clear();
+          for (const r of state.roads) {
+            state.roadSet.add(roadKey(r.a, r.b));
+            incIntersection(r.a);
+            incIntersection(r.b);
+          }
+          setStatus("Loaded saved city.");
+          return true;
+        } catch (err) {
+          console.warn("Bad save", err);
+          return false;
+        }
+      }
+
+      let last = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.033, (now - last) / 1000);
+        last = now;
+        tick(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", () => {
+        resize();
+        if (!state.houses.length) buildCity();
+      });
+
+      resize();
+      if (!loadSave()) buildCity();
+      updateHUD();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
