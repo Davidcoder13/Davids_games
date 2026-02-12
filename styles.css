@@ -1,0 +1,163 @@
+:root {
+  --paper: #F6D6AD;
+  --panel: #fff2d8ee;
+  --ink: #3b2f1a;
+  --muted: #6f624c;
+  --accent: #DB0D2B;
+  --line: #e8bf79;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: "Avenir Next", "Nunito", Inter, system-ui, sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at 20% 15%, #ffe8c6, var(--paper));
+}
+
+#gameCanvas {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  cursor: crosshair;
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  background: radial-gradient(circle at 50% 45%, transparent 45%, #7d5b1f22 100%);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #f2c786;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px #7f5b2024;
+}
+
+#topBar,
+#bottomHud {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+#topBar { top: 12px; }
+#bottomHud { bottom: 12px; }
+
+.brandTile,
+.clockTile,
+#stats,
+#controlsHelp { pointer-events: auto; }
+
+.brandTile { padding: 8px 12px; }
+.brandTile h1 { margin: 0; font-size: 1rem; letter-spacing: .02em; }
+.brandTile p { margin: 2px 0 0; color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+
+.clockTile {
+  min-width: 128px;
+  padding: 8px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  position: relative;
+  font-weight: 700;
+}
+.clockTile span:first-child { color: var(--muted); font-size: .72rem; letter-spacing: .08em; }
+.clockTile span:nth-child(2) { font-size: .92rem; }
+.clockTile .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px #db0d2b2b;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+#leftRail {
+  position: fixed;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.railBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #fff0d2eb;
+  border: 1px solid #efc179;
+  box-shadow: 0 5px 12px #7a531f2e;
+  font-size: 15px;
+}
+.railBtn.active { outline: 2px solid #DB0D2B77; }
+
+#stats {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+}
+#stats span {
+  background: #ffe6b6;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: .8rem;
+}
+
+#controlsHelp {
+  max-width: 420px;
+  padding: 8px 11px;
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+.modal {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 360px;
+  max-width: 560px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #e5b96d;
+  box-shadow: 0 26px 56px #7d532942;
+  background: #fff0d6fb;
+}
+
+#upgradeChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+#upgradeChoices button,
+#restartBtn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 700;
+  color: #3f3626;
+  background: linear-gradient(180deg, #FFC832, #F6D6AD);
+  cursor: pointer;
+}
+
+.hidden { display: none; }
