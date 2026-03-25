@@ -1,13 +1,386 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Colony Sim MVP</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <canvas id="gameCanvas" width="1280" height="720"></canvas>
-    <script type="module" src="./game/main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unit Test Review Hub</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --soft: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --good: #22c55e;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #020617, var(--bg));
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    h1, h2, h3 { line-height: 1.2; }
+    h1 {
+      margin-bottom: .4rem;
+      font-size: clamp(1.6rem, 4vw, 2.5rem);
+      color: white;
+    }
+    .subtitle { color: var(--muted); margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: rgba(17, 24, 39, .92);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: 0 8px 28px rgba(0,0,0,.25);
+    }
+    .card h2 {
+      margin-top: .2rem;
+      color: #dbeafe;
+      font-size: 1.25rem;
+    }
+    .chip {
+      display: inline-block;
+      background: #0c4a6e;
+      color: #e0f2fe;
+      border: 1px solid #0369a1;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      font-size: .8rem;
+      margin-bottom: .6rem;
+    }
+    ul { padding-left: 1.1rem; }
+    li { margin-bottom: .35rem; }
+    .def-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: .55rem;
+    }
+    .def {
+      background: var(--soft);
+      padding: .6rem;
+      border-radius: 10px;
+      border: 1px solid #374151;
+    }
+    details {
+      background: var(--soft);
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: .55rem .7rem;
+      margin: .4rem 0;
+    }
+    summary { cursor: pointer; font-weight: 600; }
+    .climate-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: .7rem;
+      font-size: .95rem;
+    }
+    .climate-table th,
+    .climate-table td {
+      border: 1px solid #334155;
+      padding: .5rem;
+      vertical-align: top;
+    }
+    .climate-table th { background: #0b3b58; }
+
+    .quiz {
+      margin-top: 1rem;
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: .9rem;
+    }
+    .question {
+      margin-bottom: .7rem;
+      font-weight: 600;
+    }
+    .options {
+      display: grid;
+      gap: .5rem;
+      margin-bottom: .8rem;
+    }
+    .option {
+      border: 1px solid #334155;
+      border-radius: 9px;
+      background: #111827;
+      color: var(--text);
+      padding: .55rem;
+      cursor: pointer;
+      text-align: left;
+    }
+    .option:hover { border-color: var(--accent); }
+    .result { font-weight: 700; min-height: 1.5rem; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+
+    .flashcard {
+      margin-top: .8rem;
+      background: #111827;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+    .flash-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .7rem; }
+    button {
+      border: 1px solid #2563eb;
+      background: #1d4ed8;
+      color: white;
+      padding: .5rem .75rem;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #374151; border-color: #4b5563; }
+    .note {
+      background: #3f2f0c;
+      border: 1px solid #854d0e;
+      border-radius: 10px;
+      padding: .7rem;
+      margin-top: .8rem;
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Unit Test Review Hub</h1>
+    <p class="subtitle">Interactive study page for Geology, Climate, Soil/Vegetation, and Natural Disasters.</p>
+
+    <section class="grid">
+      <article class="card">
+        <span class="chip">Geologic Time</span>
+        <h2>Must-Know Concepts</h2>
+        <ul>
+          <li><strong>Earth structure:</strong> crust (thin/solid), mantle (hot/plastic), outer core (liquid iron-nickel), inner core (solid iron-nickel).</li>
+          <li><strong>Eras order:</strong> Precambrian → Paleozoic → Mesozoic → Cenozoic.</li>
+          <li><strong>Age of Earth:</strong> ~4.54 billion years.</li>
+          <li><strong>Plate tectonics:</strong> lithospheric plates move over asthenosphere, causing earthquakes, volcanoes, mountain building.</li>
+          <li><strong>Evidence:</strong> continental fit, fossil matches, matching rock belts, seafloor spreading, magnetic striping, earthquake/volcano patterns.</li>
+        </ul>
+        <details>
+          <summary>Why plate tectonics matters</summary>
+          It explains landform creation, natural disasters, ocean-floor age patterns, and why continents move over geologic time.
+        </details>
+      </article>
+
+      <article class="card">
+        <span class="chip">Rock Cycle</span>
+        <h2>Rock Types + Cycle Words</h2>
+        <ul>
+          <li><strong>Igneous:</strong> formed from cooling magma/lava (granite, basalt).</li>
+          <li><strong>Sedimentary:</strong> compacted/cemented sediments or organic/chemical material (sandstone, limestone, shale).</li>
+          <li><strong>Metamorphic:</strong> altered by heat/pressure without melting (marble, slate, gneiss).</li>
+        </ul>
+        <div class="def-grid">
+          <div class="def"><strong>Weathering:</strong> breakdown of rock in place.</div>
+          <div class="def"><strong>Erosion:</strong> movement of weathered material by water, wind, ice, or gravity.</div>
+          <div class="def"><strong>Magma:</strong> melted rock below surface.</div>
+          <div class="def"><strong>Lava:</strong> magma at Earth’s surface.</div>
+        </div>
+        <details>
+          <summary>Southern Ontario bedrock impact</summary>
+          Bedrock affects building foundations, quarrying, soil fertility, groundwater movement, and aggregate resources for roads/construction.
+        </details>
+      </article>
+
+      <article class="card">
+        <span class="chip">Landform Regions of Canada</span>
+        <h2>Compare Regions Quickly</h2>
+        <details><summary>Canadian Shield</summary>Ancient igneous/metamorphic rock, thin soils, many lakes from glaciation, forestry/mining/hydro activity.</details>
+        <details><summary>Great Lakes–St. Lawrence Lowlands</summary>Sedimentary rock + fertile soils, rolling plains, heavy farming/urbanization/industry.</details>
+        <details><summary>Interior Plains</summary>Sedimentary basin, flat to rolling, agriculture and oil/gas.</details>
+        <details><summary>Cordillera</summary>Young fold mountains, mixed rocks, forestry/mining/tourism; glaciation carved valleys.</details>
+        <details><summary>Appalachians + Hudson Bay/Arctic Lowlands + Innuitians</summary>Older eroded mountains/lowlands/arctic mountains; activities vary (fishing, mining, limited farming in north).</details>
+        <p class="note"><strong>Glaciation effects:</strong> striations, U-shaped valleys, moraines, drumlins, outwash plains, and many lakes.</p>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top: 1rem;">
+      <span class="chip">Climate Regions</span>
+      <h2>Climate Controls, Maritime vs Continental, and Precipitation</h2>
+      <p><strong>6 climate factors (LOWERN):</strong> <em>Latitude, Ocean currents, Winds/air masses, Elevation, Relief, Near water.</em></p>
+      <table class="climate-table">
+        <thead>
+          <tr><th>Factor</th><th>How it affects climate</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Latitude</td><td>Closer to equator = warmer due to stronger solar energy.</td></tr>
+          <tr><td>Near water</td><td>Water heats/cools slowly, moderates temperature, often increases precipitation.</td></tr>
+          <tr><td>Ocean currents</td><td>Warm currents raise temps; cold currents cool coasts and can reduce evaporation.</td></tr>
+          <tr><td>Winds & air masses</td><td>Move temperature/moisture characteristics from source regions.</td></tr>
+          <tr><td>Elevation</td><td>Higher altitude = cooler temperatures.</td></tr>
+          <tr><td>Relief</td><td>Mountains force uplift (orographic rain) and create rain shadows.</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li><strong>Vancouver (top 3):</strong> near water, prevailing westerlies, relief (Coast Mountains).</li>
+        <li><strong>Toronto (top 3):</strong> latitude, near water (Great Lakes), air masses/winds.</li>
+        <li><strong>Continental climate:</strong> larger annual temperature range + lower precipitation.</li>
+        <li><strong>Maritime climate:</strong> smaller annual temperature range + higher precipitation.</li>
+        <li><strong>Precipitation types:</strong> convectional (summer heating), orographic (mountain uplift), cyclonic/frontal (air masses meet).</li>
+      </ul>
+    </section>
+
+    <section class="grid" style="margin-top: 1rem;">
+      <article class="card">
+        <span class="chip">Soil + Vegetation</span>
+        <h2>Core Review</h2>
+        <ul>
+          <li><strong>4 soil components:</strong> minerals, organic matter, air, water.</li>
+          <li><strong>Soil profile:</strong> O, A, B, C horizons (organic to parent material).</li>
+          <li><strong>Permafrost:</strong> permanently frozen ground (common in northern Canada).</li>
+          <li><strong>Active layer:</strong> top layer above permafrost that thaws in warm season.</li>
+          <li><strong>Humus:</strong> decomposed organic material.</li>
+          <li><strong>Leaching:</strong> dissolved minerals carried downward by water.</li>
+          <li><strong>Loam:</strong> balanced mix of sand, silt, clay + organic matter.</li>
+          <li><strong>Transition vegetation zone:</strong> Boreal & mixed forest boundary zones are transitional where species overlap.</li>
+        </ul>
+        <details><summary>Coniferous vs deciduous (3 differences)</summary>
+          Needle leaves vs broad leaves, cones vs flowers/fruits, usually evergreen vs seasonal leaf drop.
+        </details>
+        <details><summary>Treeline + causes</summary>
+          Treeline is where trees stop growing due to cold temps, short growing season, and poor/moist/permafrost soils (arctic and alpine areas).
+        </details>
+      </article>
+
+      <article class="card">
+        <span class="chip">Natural Disasters</span>
+        <h2>Emergency Response Kit</h2>
+        <ul>
+          <li>Water (2 litres/person/day for at least 72 hours)</li>
+          <li>Non-perishable food + manual can opener</li>
+          <li>Flashlight + batteries, radio, first-aid kit</li>
+          <li>Medication, hygiene items, masks, whistle</li>
+          <li>Blankets/clothing, copies of key documents, cash</li>
+          <li>Phone charger/power bank, local contact plan</li>
+        </ul>
+        <p class="note">Practice your family plan: meeting location, emergency contacts, and evacuation routes.</p>
+      </article>
+    </section>
+
+    <section class="quiz">
+      <h2>Quick Quiz</h2>
+      <div id="question" class="question"></div>
+      <div id="options" class="options"></div>
+      <div id="result" class="result"></div>
+      <button id="nextBtn" class="secondary">Next Question</button>
+    </section>
+
+    <section class="flashcard">
+      <h2>Flashcard Drill</h2>
+      <div id="flashTerm"><strong>Term:</strong> ...</div>
+      <div id="flashDef" style="margin-top: .5rem; color: #bfdbfe;">Definition hidden.</div>
+      <div class="flash-actions">
+        <button id="showDef">Show Definition</button>
+        <button id="newCard" class="secondary">Next Flashcard</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const quizData = [
+      {
+        q: "Which climate usually has a bigger annual temperature range?",
+        options: ["Maritime", "Continental", "Tropical"],
+        answer: 1,
+        why: "Continental climates are inland and lack ocean moderation."
+      },
+      {
+        q: "What is the correct order of geologic eras taught in this course?",
+        options: ["Cenozoic → Mesozoic → Paleozoic → Precambrian", "Precambrian → Paleozoic → Mesozoic → Cenozoic", "Paleozoic → Precambrian → Cenozoic → Mesozoic"],
+        answer: 1,
+        why: "Oldest to youngest in school sequence is Precambrian, Paleozoic, Mesozoic, Cenozoic."
+      },
+      {
+        q: "Which precipitation type is strongly linked to mountains?",
+        options: ["Convectional", "Cyclonic (frontal)", "Orographic"],
+        answer: 2,
+        why: "Orographic precipitation forms when air rises over relief."
+      },
+      {
+        q: "Permafrost is most common in which part of Canada?",
+        options: ["Far north", "Southern Ontario", "Atlantic coast only"],
+        answer: 0,
+        why: "Very cold northern regions keep ground frozen year-round."
+      }
+    ];
+
+    const flashcards = [
+      ["Plate tectonics", "Movement of lithospheric plates over the asthenosphere."],
+      ["Leaching", "Downward movement of dissolved minerals in soil by water."],
+      ["Humus", "Dark organic matter from decomposed plants and animals."],
+      ["Loam", "Soil with balanced sand, silt, clay, and organic content."],
+      ["Active layer", "Surface layer above permafrost that thaws each warm season."],
+      ["Treeline", "Boundary beyond which climate conditions prevent tree growth."]
+    ];
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const resultEl = document.getElementById("result");
+    const nextBtn = document.getElementById("nextBtn");
+    let current = 0;
+
+    function renderQuestion() {
+      const item = quizData[current];
+      questionEl.textContent = item.q;
+      resultEl.textContent = "";
+      optionsEl.innerHTML = "";
+      item.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "option";
+        btn.textContent = opt;
+        btn.onclick = () => {
+          const ok = idx === item.answer;
+          resultEl.textContent = ok ? `Correct! ${item.why}` : `Not quite. ${item.why}`;
+          resultEl.className = `result ${ok ? "good" : "warn"}`;
+        };
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    nextBtn.addEventListener("click", () => {
+      current = (current + 1) % quizData.length;
+      renderQuestion();
+    });
+    renderQuestion();
+
+    const flashTerm = document.getElementById("flashTerm");
+    const flashDef = document.getElementById("flashDef");
+    const showDef = document.getElementById("showDef");
+    const newCard = document.getElementById("newCard");
+
+    let cardIndex = 0;
+    function loadCard() {
+      const [term, def] = flashcards[cardIndex];
+      flashTerm.innerHTML = `<strong>Term:</strong> ${term}`;
+      flashDef.textContent = "Definition hidden.";
+      flashDef.dataset.value = def;
+    }
+
+    showDef.addEventListener("click", () => {
+      flashDef.textContent = flashDef.dataset.value;
+    });
+
+    newCard.addEventListener("click", () => {
+      cardIndex = (cardIndex + 1) % flashcards.length;
+      loadCard();
+    });
+
+    loadCard();
+  </script>
+</body>
 </html>
